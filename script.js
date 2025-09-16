@@ -64,6 +64,13 @@ function initializeApp() {
     // Event listener para mudança no campo caixa
     caixaInput.addEventListener('input', updateViewBoxButton);
     
+    // Event listeners para backup
+    document.getElementById('saveBackupBtn').addEventListener('click', saveBackup);
+    document.getElementById('loadBackupBtn').addEventListener('click', () => {
+        document.getElementById('loadBackupInput').click();
+    });
+    document.getElementById('loadBackupInput').addEventListener('change', loadBackup);
+    
     // Event listener para fechar modal clicando fora
     window.addEventListener('click', function(event) {
         if (event.target === itemModal) {
@@ -120,13 +127,14 @@ function resetForm() {
     itemForm.reset();
     nomeInput.value = '';
     caixaInput.value = currentCaixa; // Restaurar valor da caixa
+    unitInput.value = 'BOX'; // Garantir que BOX seja sempre selecionado
 }
 
 function resetItemFields() {
     // Limpar apenas campos de item, manter caixa
     codigoInput.value = '';
     qtInput.value = '';
-    unitInput.value = '';
+    unitInput.value = 'BOX'; // Garantir que BOX seja sempre selecionado
     nomeInput.value = '';
 }
 
@@ -326,6 +334,88 @@ function deleteBox(boxNumber) {
     });
 }
 
+function editBox(boxNumber) {
+    currentEditingItem = null;
+    resetForm();
+    
+    // Preencher campo CAIXA com o número da caixa selecionada
+    caixaInput.value = boxNumber;
+    
+    deleteBtn.style.display = 'none';
+    itemModal.style.display = 'block';
+    updateViewBoxButton();
+    codigoInput.focus();
+}
+
+// Funções de backup
+function saveBackup() {
+    if (Object.keys(boxes).length === 0) {
+        showAlert('Nenhuma caixa para salvar!', 'warning');
+        return;
+    }
+    
+    const backupData = {
+        boxes: boxes,
+        store: storeSelect.value,
+        timestamp: new Date().toISOString(),
+        version: '1.0'
+    };
+    
+    const dataStr = JSON.stringify(backupData, null, 2);
+    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+    
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(dataBlob);
+    
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+    const storeName = storeSelect.value || 'SemLoja';
+    
+    link.download = `Checklist_${storeName}_${dateStr}_${timeStr}.json`;
+    link.click();
+    
+    showAlert('Backup salvo com sucesso!', 'success');
+}
+
+function loadBackup(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const backupData = JSON.parse(e.target.result);
+            
+            if (!backupData.boxes) {
+                showAlert('Arquivo de backup inválido!', 'error');
+                return;
+            }
+            
+            showConfirm('Carregar backup irá substituir todos os dados atuais. Continuar?', () => {
+                boxes = backupData.boxes;
+                
+                if (backupData.store) {
+                    storeSelect.value = backupData.store;
+                }
+                
+                saveToLocalStorage();
+                renderBoxes();
+                updatePrintButtonState();
+                
+                const boxCount = Object.keys(boxes).length;
+                showAlert(`Backup carregado! ${boxCount} caixa${boxCount !== 1 ? 's' : ''} restaurada${boxCount !== 1 ? 's' : ''}.`, 'success');
+            });
+            
+        } catch (error) {
+            showAlert('Erro ao ler arquivo de backup!', 'error');
+        }
+    };
+    
+    reader.readAsText(file);
+    event.target.value = ''; // Limpar input para permitir recarregar o mesmo arquivo
+}
+
 function renderBoxes() {
     const boxNumbers = Object.keys(boxes).sort((a, b) => parseInt(a) - parseInt(b));
     
@@ -369,6 +459,9 @@ function renderBoxes() {
                     <h3><i class="fas fa-box"></i> CAIXA ${boxNumber}</h3>
                     <div class="box-header-actions">
                         <span class="box-count">${boxItems.length} item${boxItems.length !== 1 ? 's' : ''}</span>
+                        <button class="edit-box-btn" onclick="editBox(${boxNumber})" title="Adicionar mais itens nesta caixa">
+                            <i class="fas fa-plus"></i>
+                        </button>
                         <button class="delete-box-btn" onclick="deleteBox(${boxNumber})" title="Excluir caixa inteira">
                             <i class="fas fa-trash"></i>
                         </button>

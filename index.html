@@ -29,23 +29,30 @@
         </header>
 
         <main class="main-content">
-            <div class="add-card-section">
-                <button id="addCardBtn" class="add-card-btn">
-                    <i class="fas fa-plus"></i> ADICIONAR CARD
-                </button>
-            </div>
 
             <div class="cards-container" id="cardsContainer">
                 <!-- Cards serão adicionados aqui dinamicamente -->
             </div>
 
             <div class="actions-section">
+                <button id="saveBackupBtn" class="backup-btn">
+                    <i class="fas fa-download"></i> SALVAR BACKUP
+                </button>
+                <input type="file" id="loadBackupInput" accept=".json" style="display: none;">
+                <button id="loadBackupBtn" class="backup-btn">
+                    <i class="fas fa-upload"></i> CARREGAR BACKUP
+                </button>
                 <button id="printBtn" class="print-btn">
                     <i class="fas fa-print"></i> IMPRIMIR
                 </button>
             </div>
         </main>
     </div>
+
+    <!-- Botão flutuante para adicionar card -->
+    <button id="addCardBtn" class="floating-add-btn">
+        <i class="fas fa-plus"></i>
+    </button>
 
     <!-- Modal para adicionar item -->
     <div id="itemModal" class="modal">
@@ -80,7 +87,7 @@
                         <label for="unit">UNIT:</label>
                         <select id="unit" name="unit" class="unit-select">
                             <option value="">Selecione uma opção</option>
-                            <option value="BOX">BOX</option>
+                            <option value="BOX" selected>BOX</option>
                             <option value="UN">UN</option>
                             <option value="MASTER">MASTER</option>
                         </select>
