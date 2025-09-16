@@ -41,6 +41,17 @@ const nomeInput = document.getElementById('nome');
 const deleteBtn = document.getElementById('deleteBtn');
 const viewBoxBtn = document.getElementById('viewBoxBtn');
 
+// Função para limpar todas as caixas
+function clearAllBoxes() {
+    showConfirm('Tem certeza que deseja limpar todas as caixas? Esta ação não pode ser desfeita.', () => {
+        boxes = {};
+        saveToLocalStorage();
+        renderBoxes();
+        updatePrintButtonState();
+        showToast('Todas as caixas foram removidas com sucesso!', 'success');
+    });
+}
+
 // Event Listeners
 document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
@@ -77,6 +88,12 @@ function initializeApp() {
             closeAddModal();
         }
     });
+    
+    // Event listener para o botão de limpar tudo
+    document.getElementById('clearAllBtn').addEventListener('click', clearAllBoxes);
+    
+    // Event listener para o campo de código
+    codigoInput.addEventListener('change', handleCodigoChange);
     
     // Carregar dados salvos e renderizar estado inicial
     loadFromLocalStorage();
