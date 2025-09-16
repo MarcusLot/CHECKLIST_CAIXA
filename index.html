@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checklist de Itens - Entrega</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-title">
+                <h1><i class="fas fa-clipboard-list"></i> Checklist de Itens</h1>
+                <span class="creator-tag">CREATE MARCUS LOT</span>
+            </div>
+            <div class="store-selector">
+                <label for="store">Escolher Loja:</label>
+                <select id="store" class="store-select">
+                    <option value="">Selecione uma loja</option>
+                    <option value="CENTRO">CENTRO</option>
+                    <option value="NORTE">NORTE</option>
+                    <option value="BOULEVARD">BOULEVARD</option>
+                    <option value="ARAPONGAS">ARAPONGAS</option>
+                    <option value="APUCARANA">APUCARANA</option>
+                    <option value="MARINGA">MARINGÁ</option>
+                </select>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="add-card-section">
+                <button id="addCardBtn" class="add-card-btn">
+                    <i class="fas fa-plus"></i> ADICIONAR CARD
+                </button>
+            </div>
+
+            <div class="cards-container" id="cardsContainer">
+                <!-- Cards serão adicionados aqui dinamicamente -->
+            </div>
+
+            <div class="actions-section">
+                <button id="printBtn" class="print-btn">
+                    <i class="fas fa-print"></i> IMPRIMIR
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal para adicionar item -->
+    <div id="itemModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-plus-circle"></i> Adicionar Item</h2>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="itemForm">
+                    <div class="form-group">
+                        <label for="caixa">CAIXA: <span class="required">*</span></label>
+                        <div class="caixa-input-group">
+                            <input type="number" id="caixa" name="caixa" min="1" required placeholder="Número da caixa">
+                            <button type="button" id="viewBoxBtn" class="view-box-btn" title="Ver itens desta caixa">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="codigo">CÓDIGO: <span class="required">*</span></label>
+                        <input type="text" id="codigo" name="codigo" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="qt">QT: <span class="required">*</span></label>
+                        <input type="number" id="qt" name="qt" min="1" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="unit">UNIT:</label>
+                        <select id="unit" name="unit" class="unit-select">
+                            <option value="">Selecione uma opção</option>
+                            <option value="BOX">BOX</option>
+                            <option value="UN">UN</option>
+                            <option value="MASTER">MASTER</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="nome">NOME:</label>
+                        <input type="text" id="nome" name="nome" readonly placeholder="Nome será preenchido automaticamente">
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" id="deleteBtn" class="delete-btn">
+                            <i class="fas fa-trash"></i> EXCLUIR
+                        </button>
+                        <button type="submit" class="save-btn">
+                            <i class="fas fa-save"></i> SALVAR
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Área de impressão (oculta) -->
+    <div id="printArea" class="print-area">
+        <div class="print-header">
+            <h1>Checklist de Itens - Entrega</h1>
+            <div class="print-info">
+                <p><strong>Loja:</strong> <span id="printStore"></span></p>
+                <p><strong>Data:</strong> <span id="printDate"></span></p>
+            </div>
+        </div>
+        <div class="print-content" id="printContent">
+            <!-- Conteúdo para impressão será gerado aqui -->
+        </div>
+    </div>
+
+    <!-- Modal customizado para alertas -->
+    <div id="customAlert" class="custom-modal">
+        <div class="custom-modal-content alert-modal">
+            <div class="custom-modal-header">
+                <i id="alertIcon" class="fas fa-info-circle"></i>
+                <h3 id="alertTitle">Aviso</h3>
+            </div>
+            <div class="custom-modal-body">
+                <p id="alertMessage"></p>
+            </div>
+            <div class="custom-modal-footer">
+                <button id="alertOkBtn" class="custom-btn custom-btn-primary">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal customizado para confirmações -->
+    <div id="customConfirm" class="custom-modal">
+        <div class="custom-modal-content confirm-modal">
+            <div class="custom-modal-header">
+                <i class="fas fa-question-circle"></i>
+                <h3>Confirmação</h3>
+            </div>
+            <div class="custom-modal-body">
+                <p id="confirmMessage"></p>
+            </div>
+            <div class="custom-modal-footer">
+                <button id="confirmCancelBtn" class="custom-btn custom-btn-secondary">Cancelar</button>
+                <button id="confirmOkBtn" class="custom-btn custom-btn-danger">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal customizado para visualização de caixa -->
+    <div id="customViewBox" class="custom-modal">
+        <div class="custom-modal-content view-box-modal">
+            <div class="custom-modal-header">
+                <i class="fas fa-box"></i>
+                <h3 id="viewBoxTitle">Itens da Caixa</h3>
+                <button id="closeViewBoxBtn" class="close-custom-modal">&times;</button>
+            </div>
+            <div class="custom-modal-body">
+                <div id="viewBoxContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="database.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
