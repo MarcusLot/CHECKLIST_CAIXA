@@ -850,7 +850,7 @@ body {
     
     .print-box {
         margin-bottom: 15px;
-        border: 1px solid #333;
+        border: none;
         break-inside: avoid;
     }
     
@@ -859,12 +859,12 @@ body {
         padding: 6px 8px;
         font-weight: bold;
         font-size: 12px;
-        border-bottom: 1px solid #333;
+        border-bottom: none;
     }
     
     .print-item {
         padding: 4px 8px;
-        border-bottom: 1px solid #ddd;
+        border-bottom: none;
         display: flex;
         align-items: center;
         gap: 10px;
