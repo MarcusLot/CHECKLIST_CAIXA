@@ -187,12 +187,13 @@ function viewCurrentBox() {
         // Gerar conteúdo dos itens
         const content = items.map((item, index) => `
             <div class="view-box-item">
-                <div class="view-box-item-header">
-                    <span class="view-box-item-code">${item.codigo}</span>
-                    <span class="view-box-item-info">QT: ${item.qt}${item.unit ? ` | UNIT: ${item.unit}` : ''}</span>
+                <div class="print-item">
+                    <div class="item-info">${item.codigo} - ${item.nome}</div>
+                    <div class="item-quantity" style="text-align: right;">QT: ${item.qt}${item.unit ? ' | ' + item.unit : ''}</div>
                 </div>
                 <div class="view-box-item-name">${item.nome || 'Nome não encontrado'}</div>
             </div>
+            <hr>
         `).join('');
         
         document.getElementById('viewBoxContent').innerHTML = content;
@@ -506,7 +507,21 @@ function updatePrintButtonState() {
     }
 }
 
+/**
+ * Função responsável por gerar e exibir a janela de impressão do checklist
+ * Esta função:
+ * 1. Valida se existem itens e se uma loja foi selecionada
+ * 2. Prepara o conteúdo HTML para impressão
+ * 3. Formata as caixas e itens para o layout de impressão
+ * 4. Abre a janela de impressão do navegador
+ * 
+ * Possíveis problemas conhecidos:
+ * - Estilos inline podem não ser totalmente respeitados em alguns navegadores
+ * - Quebras de página podem ocorrer no meio de caixas
+ * - Em navegadores mais antigos, pode ser necessário ajustes nos estilos
+ */
 function printChecklist() {
+    // Validações iniciais
     const selectedStore = storeSelect.value;
     const totalItems = Object.values(boxes).reduce((total, boxItems) => total + boxItems.length, 0);
     
@@ -520,61 +535,242 @@ function printChecklist() {
         return;
     }
     
-    // Preparar conteúdo para impressão
+    // Elementos do DOM para impressão
     const printArea = document.getElementById('printArea');
     const printStore = document.getElementById('printStore');
     const printDate = document.getElementById('printDate');
     const printContent = document.getElementById('printContent');
     
+    // Atualiza informações da loja e data
     printStore.textContent = selectedStore;
     printDate.textContent = new Date().toLocaleDateString('pt-BR');
     
-    // Gerar lista de caixas e itens para impressão
+    /**
+     * Gera o HTML para cada caixa e seus itens
+     * Ordena as caixas numericamente para exibição
+     */
     const boxNumbers = Object.keys(boxes).sort((a, b) => parseInt(a) - parseInt(b));
     const printBoxes = boxNumbers.map(boxNumber => {
         const boxItems = boxes[boxNumber];
+        
+        // Gera o HTML para cada item da caixa
         const itemsHtml = boxItems.map((item, index) => `
             <div class="print-item">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <input type="checkbox" style="width: 15px; height: 15px; margin-right: 10px;">
-                    <div>
-                        <strong>${item.codigo}</strong> - ${item.nome || 'Nome não encontrado'}
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
+                        <!-- Checkbox para marcar itens recebidos -->
+                        <input type="checkbox" style="width: 15px; height: 15px; margin-right: 10px;">
+                        <div>
+                            <strong>${item.codigo}</strong> - ${item.nome || 'Nome não encontrado'}
+                        </div>
                     </div>
-                </div>
-                <div style="margin-left: 35px; margin-top: 5px;">
-                    QT: <strong>${item.qt}</strong>${item.unit ? ` | UNIT: <strong>${item.unit}</strong>` : ''}
+                    <div style="white-space: nowrap; margin-left: 15px; color: #555;">
+                        QT: <strong>${item.qt}</strong>${item.unit ? ` | ${item.unit}` : ''}
+                    </div>
                 </div>
             </div>
         `).join('');
         
+        // Retorna o HTML da caixa com seus itens
         return `
-            <div class="print-box">
-                <h3 style="background: #f0f0f0; padding: 10px; margin: 20px 0 10px 0; border-left: 4px solid #667eea;">
+            <div class="print-box" style="border-bottom: 1px solid #000; padding-bottom: 15px; margin-bottom: 15px;">
+                <h3 style="background: #f0f0f0; padding: 8px; margin: 0 0 8px 0; font-size: 14px; border-left: 4px solid #667eea;">
                     CAIXA ${boxNumber} (${boxItems.length} item${boxItems.length !== 1 ? 's' : ''})
                 </h3>
-                ${itemsHtml}
+                <div style="padding: 0 10px;">
+                    ${itemsHtml}
+                </div>
             </div>
         `;
     }).join('');
     
+    // Formata a data atual
+    const today = new Date();
+    const formattedDate = today.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    // Monta o conteúdo completo da impressão
     printContent.innerHTML = `
-        <div style="margin-bottom: 20px;">
-            <strong>Total de caixas: ${boxNumbers.length} | Total de itens: ${totalItems}</strong>
-        </div>
-        ${printBoxes}
-        <div style="margin-top: 40px; border-top: 1px solid #333; padding-top: 20px;">
-            <div style="display: flex; justify-content: space-between;">
-                <div>Responsável: _________________________</div>
-                <div>Data de entrega: ___________________</div>
+        <!-- Cabeçalho -->
+        <div class="print-header">
+            <h1>Checklist de Itens - Entrega</h1>
+            <div class="print-info">
+                <div><strong>Loja:</strong> ${selectedStore || 'Não informada'}</div>
+                <div><strong>Data/Hora:</strong> ${formattedDate}</div>
             </div>
-            <div style="margin-top: 20px;">
-                <div>RESPONSÁVEL PELO RECEBIMENTO: _________________________________________</div>
+            <div style="margin-top: 10px; font-weight: bold;">
+                Total de Caixas: ${boxNumbers.length} | Total de Itens: ${totalItems}
+            </div>
+        </div>
+        
+        <!-- Conteúdo Principal -->
+        <div class="print-content">
+            ${printBoxes}
+        </div>
+        
+        <!-- Rodapé -->
+        <div class="print-footer">
+            <div class="print-signature">
+                <div>
+                    <div class="print-signature-line">Responsável pela Entrega</div>
+                    <div style="margin-top: 40px;">
+                        Nome: ___________________________________<br>
+                        Assinatura: _____________________________
+                    </div>
+                </div>
+                <div>
+                    <div class="print-signature-line">Responsável pelo Recebimento</div>
+                    <div style="margin-top: 40px;">
+                        Nome: ___________________________________<br>
+                        Assinatura: _____________________________
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-top: 40px; text-align: center; font-size: 10px; color: #666;">
+                Documento gerado em: ${formattedDate} | Checklist de Itens - ${selectedStore || 'Loja não informada'}
             </div>
         </div>
     `;
     
-    // Imprimir
-    window.print();
+    // Cria um documento HTML simples para impressão
+    const printWindow = window.open('', '_blank');
+    
+    // Conteúdo HTML para impressão
+    const printHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Checklist de Itens - ${selectedStore || 'Entrega'}</title>
+            <meta charset="UTF-8">
+            <style>
+                @page { 
+                    size: A4; 
+                    margin: 10mm 10mm 15mm 10mm; 
+                }
+                body { 
+                    margin: 0; 
+                    padding: 10mm; 
+                    font-family: Arial, sans-serif; 
+                    font-size: 11px;
+                    line-height: 1.3;
+                    color: #000;
+                }
+                .print-header { 
+                    text-align: center; 
+                    margin-bottom: 20px;
+                }
+                .print-header h1 { 
+                    font-size: 20px; 
+                    margin: 0 0 8px 0; 
+                    color: #333;
+                }
+                .print-info {
+                    margin: 5px 0 15px 0;
+                    display: flex;
+                    gap: 15px;
+                    justify-content: center;
+                    flex-wrap: wrap;
+                    align-items: center;
+                }
+                .print-box { 
+                    margin-bottom: 15px; 
+                    page-break-inside: avoid;
+                    border: none;
+                    padding: 0 0 15px 0;
+                    border-bottom: 1px solid #000;
+                }
+                .print-box:last-child {
+                    border-bottom: none;
+                    margin-bottom: 0;
+                    padding-bottom: 0;
+                }
+                .print-box h3 {
+                    background: #f5f5f5;
+                    padding: 6px 8px;
+                    margin: 0 0 8px 0;
+                    font-size: 12px;
+                    border-left: 4px solid #667eea;
+                }
+                .print-item {
+                    padding: 6px 0;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    border-bottom: 1px solid #f0f0f0;
+                }
+                .item-info {
+                    flex: 1;
+                }
+                .item-quantity {
+                    margin-left: 15px;
+                    white-space: nowrap;
+                    color: #555;
+                }
+                .print-footer {
+                    margin-top: 30px;
+                    padding-top: 20px;
+                    border-top: 1px solid #333;
+                }
+                .print-signature {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-top: 40px;
+                }
+                .print-signature > div {
+                    width: 45%;
+                }
+                .print-signature-line {
+                    border-top: 1px solid #333;
+                    padding-top: 5px;
+                    margin-bottom: 40px;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="print-header">
+                <h1>Checklist de Itens - Entrega</h1>
+                <div class="print-info">
+                    <p><strong>Loja:</strong> ${selectedStore || 'Não informada'} | 
+                    <strong>Data/Hora:</strong> ${formattedDate} | 
+                    <strong>Total de Caixas:</strong> ${boxNumbers.length} | 
+                    <strong>Total de Itens:</strong> ${totalItems}</p>
+                </div>
+            </div>
+            
+            <div class="print-content">
+                ${printBoxes}
+            </div>
+            
+            <div class="print-footer">
+                <div style="margin-top: 30px; text-align: center; font-size: 9px; color: #666;">
+                    Documento gerado em: ${formattedDate} | Checklist de Itens - ${selectedStore || 'Loja não informada'}
+                </div>
+            </div>
+            
+            <script>
+                // Pequeno atraso para garantir que tudo foi carregado
+                setTimeout(function() {
+                    window.print();
+                    // Fecha a janela após a impressão
+                    setTimeout(function() {
+                        window.close();
+                    }, 100);
+                }, 200);
+            <\/script>
+        </body>
+        </html>
+    `;
+    
+    // Escreve o conteúdo no novo documento e fecha
+    printWindow.document.open();
+    printWindow.document.write(printHTML);
+    printWindow.document.close();
 }
 
 function showAlert(message, type = 'info') {
