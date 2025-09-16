@@ -95,6 +95,107 @@ function initializeApp() {
     // Event listener para o campo de código
     codigoInput.addEventListener('change', handleCodigoChange);
     
+    // Event listener para o botão de visualização
+    document.getElementById('previewBtn').addEventListener('click', function() {
+        const printWindow = window.open('', '_blank');
+        const htmlContent = generatePrintContent();
+        
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Pré-visualização - Checklist de Itens</title>
+                <meta charset="UTF-8">
+                <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+                <style>
+                    body { 
+                        font-family: Arial, sans-serif; 
+                        padding: 20px;
+                        max-width: 1000px;
+                        margin: 0 auto;
+                    }
+                    .print-header { 
+                        text-align: center; 
+                        margin-bottom: 20px;
+                    }
+                    .print-header h1 { 
+                        font-size: 24px; 
+                        margin: 0 0 10px 0; 
+                        color: #333;
+                    }
+                    .print-info {
+                        margin: 10px 0 20px;
+                        text-align: center;
+                        font-size: 14px;
+                    }
+                    .print-box { 
+                        margin-bottom: 30px;
+                        page-break-inside: avoid;
+                    }
+                    .print-box h3 {
+                        background: #f5f5f5;
+                        padding: 10px;
+                        margin: 0 0 10px 0;
+                        font-size: 16px;
+                        border-left: 4px solid #667eea;
+                        font-weight: bold;
+                    }
+                    .print-item {
+                        display: flex;
+                        justify-content: space-between;
+                        padding: 8px 0;
+                        border-bottom: 1px solid #eee;
+                    }
+                    .item-quantity {
+                        margin-left: 20px;
+                        white-space: nowrap;
+                        color: #555;
+                    }
+                    .actions {
+                        margin-top: 30px;
+                        text-align: center;
+                    }
+                    .print-button {
+                        background: #4a90e2;
+                        color: white;
+                        border: none;
+                        padding: 10px 20px;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-size: 16px;
+                        margin: 0 10px;
+                    }
+                    .print-button:hover {
+                        background: #357abd;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="print-header">
+                    <h1>Pré-visualização do Checklist</h1>
+                    <div class="print-info">
+                        <p>Esta é uma pré-visualização de como ficará o documento impresso.</p>
+                    </div>
+                </div>
+                ${htmlContent}
+                <div class="actions">
+                    <button onclick="window.print()" class="print-button">
+                        <i class="fas fa-print"></i> Imprimir
+                    </button>
+                    <button onclick="window.close()" class="print-button" style="background: #6c757d;">
+                        <i class="fas fa-times"></i> Fechar
+                    </button>
+                </div>
+            </body>
+            </html>
+        `);
+        
+        previewWindow.document.close();
+    });
+
+    // Event listener para o botão de imprimir
+    document.getElementById('printBtn').addEventListener('click', printChecklist);
+    
     // Carregar dados salvos e renderizar estado inicial
     loadFromLocalStorage();
     renderBoxes();
@@ -520,30 +621,270 @@ function updatePrintButtonState() {
  * - Quebras de página podem ocorrer no meio de caixas
  * - Em navegadores mais antigos, pode ser necessário ajustes nos estilos
  */
-function printChecklist() {
-    // Validações iniciais
-    const selectedStore = storeSelect.value;
-    const totalItems = Object.values(boxes).reduce((total, boxItems) => total + boxItems.length, 0);
-    
-    if (totalItems === 0) {
-        showAlert('Adicione pelo menos um item antes de imprimir!', 'error');
-        return;
+function generatePrintContent() {
+    // Mesmo conteúdo da função printChecklist, mas retornando o HTML em vez de abrir a janela de impressão
+    if (Object.keys(boxes).length === 0) {
+        showAlert('Não há itens para imprimir!', 'warning');
+        return '';
     }
-    
+
+    const selectedStore = document.getElementById('store').value;
     if (!selectedStore) {
-        showAlert('Selecione uma loja antes de imprimir!', 'error');
-        return;
+        showAlert('Por favor, selecione uma loja antes de imprimir.', 'warning');
+        return '';
     }
+
+    // Ordena as caixas numericamente para exibição
+    const boxNumbers = Object.keys(boxes).sort((a, b) => parseInt(a) - parseInt(b));
     
-    // Elementos do DOM para impressão
-    const printArea = document.getElementById('printArea');
-    const printStore = document.getElementById('printStore');
-    const printDate = document.getElementById('printDate');
-    const printContent = document.getElementById('printContent');
+    // Calcula o total de itens
+    let totalItems = 0;
+    boxNumbers.forEach(boxNumber => {
+        totalItems += boxes[boxNumber].length;
+    });
+
+    // Formata a data atual
+    const today = new Date();
+    const formattedDate = today.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    // Gera o HTML para cada caixa
+    const printBoxes = boxNumbers.map(boxNumber => {
+        const boxItems = boxes[boxNumber];
+        
+        // Gera o HTML para cada item da caixa
+        const itemsHtml = boxItems.map((item, index) => `
+            <div class="print-item">
+                <div class="item-info">
+                    ${item.codigo} - ${item.nome || 'Nome não encontrado'}
+                </div>
+                <div class="item-quantity">
+                    QT: <strong>${item.qt}</strong>${item.unit ? ` | ${item.unit}` : ''}
+                </div>
+            </div>
+        `).join('');
+        
+        // Retorna o HTML da caixa com seus itens
+        return `
+            <div class="print-box">
+                <h3>
+                    <i class="fas fa-box"></i> CAIXA ${boxNumber} (${boxItems.length} item${boxItems.length !== 1 ? 's' : ''})
+                </h3>
+                <div style="padding: 0 15px;">
+                    ${itemsHtml}
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    return `
+        <div class="print-content">
+            <div class="print-header">
+                <h1>Checklist de Itens - Entrega</h1>
+                <div class="print-info">
+                    <p>
+                        <strong>Loja:</strong> ${selectedStore} | 
+                        <strong>Data/Hora:</strong> ${formattedDate} | 
+                        <strong>Total de Caixas:</strong> ${boxNumbers.length} | 
+                        <strong>Total de Itens:</strong> ${totalItems}
+                    </p>
+                </div>
+            </div>
+            ${printBoxes}
+            <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666; padding-top: 20px; border-top: 1px solid #eee;">
+                Documento gerado em: ${formattedDate} | Checklist de Itens - ${selectedStore}
+            </div>
+        </div>
+    `;
+}
+
+function printChecklist() {
+    const htmlContent = generatePrintContent();
+    if (!htmlContent) return;
     
-    // Atualiza informações da loja e data
-    printStore.textContent = selectedStore;
-    printDate.textContent = new Date().toLocaleDateString('pt-BR');
+    const previewWindow = window.open('', '_blank');
+    previewWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Pré-visualização - Checklist de Itens</title>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+            <style>
+                @page { 
+                    size: A4; 
+                    margin: 15mm 10mm 20mm 10mm; 
+                }
+                body { 
+                    margin: 0; 
+                    padding: 10px; 
+                    font-family: Arial, sans-serif; 
+                    font-size: 14px;
+                    line-height: 1.4;
+                    color: #000;
+                    -webkit-text-size-adjust: 100%;
+                }
+                
+                /* Melhorias gerais para todos os tamanhos */
+                .print-header {
+                    padding: 10px 0;
+                }
+                
+                .print-info {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 10px;
+                    justify-content: center;
+                    margin-bottom: 15px;
+                }
+                
+                .print-info p {
+                    margin: 5px 0;
+                    white-space: nowrap;
+                }
+                
+                /* Estilos para telas pequenas (celulares) */
+                @media (max-width: 600px) {
+                    body {
+                        padding: 8px;
+                        font-size: 12px;
+                    }
+                    
+                    .print-header h1 {
+                        font-size: 18px !important;
+                        margin-bottom: 5px !important;
+                    }
+                    
+                    .print-info {
+                        flex-direction: column;
+                        gap: 5px !important;
+                    }
+                    
+                    .print-box h3 {
+                        font-size: 14px !important;
+                        padding: 6px 8px !important;
+                    }
+                    
+                    .print-item {
+                        flex-direction: column;
+                        gap: 3px;
+                    }
+                    
+                    .item-quantity {
+                        margin-left: 0 !important;
+                        margin-top: 3px;
+                    }
+                }
+                
+                /* Estilos para tablets */
+                @media (min-width: 601px) and (max-width: 1024px) {
+                    body {
+                        padding: 15px;
+                        font-size: 13px;
+                        max-width: 100%;
+                        overflow-x: hidden;
+                    }
+                    
+                    .print-header h1 {
+                        font-size: 20px !important;
+                        margin-top: 10px;
+                    }
+                    
+                    .print-info {
+                        flex-wrap: wrap;
+                    }
+                    
+                    .print-box {
+                        margin-bottom: 25px;
+                    }
+                }
+                
+                /* Melhorias para impressão */
+                @media print {
+                    body {
+                        padding: 0 !important;
+                        margin: 0 !important;
+                        font-size: 11px !important;
+                    }
+                    
+                    .print-box {
+                        page-break-inside: avoid;
+                        break-inside: avoid;
+                    }
+                    
+                    .print-item {
+                        padding: 4px 0 !important;
+                    }
+                }
+                
+                .print-box { 
+                    margin-bottom: 20px; 
+                    page-break-inside: avoid;
+                    background: #fff;
+                    border-radius: 4px;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                    padding: 10px;
+                }
+                
+                .print-box h3 {
+                    background: #f5f5f5;
+                    padding: 8px 12px;
+                    margin: -10px -10px 10px -10px;
+                    font-size: 14px;
+                    border-left: 4px solid #667eea;
+                    font-weight: bold;
+                    word-break: break-word;
+                    border-radius: 4px 4px 0 0;
+                }
+                
+                .print-item {
+                    display: flex;
+                    justify-content: space-between;
+                    padding: 8px 0;
+                    border-bottom: 1px solid #f0f0f0;
+                    flex-wrap: wrap;
+                    align-items: center;
+                }
+                
+                .item-info {
+                    flex: 1;
+                    min-width: 0;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    padding-right: 10px;
+                }
+                
+                .item-quantity {
+                    margin-left: 15px;
+                    white-space: nowrap;
+                    color: #555;
+                    flex-shrink: 0;
+                    font-weight: 500;
+                }
+            </style>
+        </head>
+        <body>
+            ${htmlContent}
+            <script>
+                // Pequeno atraso para garantir que tudo foi carregado
+                setTimeout(function() {
+                    window.print();
+                    // Fecha a janela após a impressão
+                    setTimeout(function() {
+                        window.close();
+                    }, 100);
+                }, 200);
+            <\/script>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
     
     /**
      * Gera o HTML para cada caixa e seus itens
@@ -574,8 +915,8 @@ function printChecklist() {
         // Retorna o HTML da caixa com seus itens
         return `
             <div class="print-box" style="border-bottom: 1px solid #000; padding-bottom: 15px; margin-bottom: 15px;">
-                <h3 style="background: #f0f0f0; padding: 8px; margin: 0 0 8px 0; font-size: 14px; border-left: 4px solid #667eea;">
-                    CAIXA ${boxNumber} (${boxItems.length} item${boxItems.length !== 1 ? 's' : ''})
+                <h3 style="background: #f0f0f0; padding: 8px; margin: 0 0 8px 0; font-size: 14px; border-left: 4px solid #667eea; font-weight: bold;">
+                    <i class="fas fa-box"></i> CAIXA ${boxNumber} (${boxItems.length} item${boxItems.length !== 1 ? 's' : ''})
                 </h3>
                 <div style="padding: 0 10px;">
                     ${itemsHtml}
